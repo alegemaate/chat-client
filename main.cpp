@@ -5,38 +5,10 @@
 #include "ChatServer.h"
 #include "ChatClient.h"
 
-const uint16 DEFAULT_SERVER_PORT = 27020;
-
-static void InitSteamDatagramConnectionSockets() {
-  SteamDatagramErrMsg errMsg;
-  if ( !GameNetworkingSockets_Init( nullptr, errMsg ) )
-    cc.FatalError( "GameNetworkingSockets_Init failed.  %s", errMsg );
-
-	g_logTimeZero = SteamNetworkingUtils()->GetLocalTimestamp();
-
-	SteamNetworkingUtils()->SetDebugOutputFunction( k_ESteamNetworkingSocketsDebugOutputType_Msg, DebugOutput );
-}
-
-static void ShutdownSteamDatagramConnectionSockets() {
-	std::this_thread::sleep_for( std::chrono::milliseconds( 500 ) );
-
-  GameNetworkingSockets_Kill();
-}
-
-
-void PrintUsageAndExit( int rc = 1 ) {
-	fflush(stderr);
-	printf(
-R"usage(Usage:
-    example_chat client SERVER_ADDR
-    example_chat server [--port PORT]
-)usage"
-	);
-	fflush(stdout);
-	exit(rc);
-}
 
 int main( int argc, const char *argv[] ) {
+  const uint16 DEFAULT_SERVER_PORT = 27020;
+
 	bool bServer = false;
 	bool bClient = false;
 	int nPort = DEFAULT_SERVER_PORT;
@@ -54,15 +26,6 @@ int main( int argc, const char *argv[] ) {
 				continue;
 			}
 		}
-		if (!strcmp( argv[i], "--port" )) {
-			++i;
-			if (i >= argc)
-				PrintUsageAndExit();
-			nPort = atoi( argv[i] );
-			if (nPort <= 0 || nPort > 65535)
-				cc.FatalError( "Invalid port %d", nPort );
-			continue;
-		}
 
 		// Anything else, must be server address to connect to
 		if (bClient && addrServer.IsIPv6AllZeros()) {
@@ -73,14 +36,11 @@ int main( int argc, const char *argv[] ) {
 			continue;
 		}
 
-		PrintUsageAndExit();
+		return 0;
 	}
 
 	if (bClient == bServer || (bClient && addrServer.IsIPv6AllZeros()))
-		PrintUsageAndExit();
-
-	// Create client and server sockets
-	InitSteamDatagramConnectionSockets();
+		return 0;
 
 	if (bClient) {
 		ChatClient client;
@@ -91,7 +51,6 @@ int main( int argc, const char *argv[] ) {
 		server.Run((uint16)nPort);
 	}
 
-	ShutdownSteamDatagramConnectionSockets();
 
 	// Ug, why is there no simple solution for portable, non-blocking console user input?
 	// Just nuke the process

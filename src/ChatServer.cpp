@@ -7,6 +7,9 @@
 #include "ChatCommon.h"
 
 void ChatServer::Run(uint16 nPort) {
+  // Create client and server sockets
+	cc.InitSteamDatagramConnectionSockets();
+
   // Restart id index
   id_index = 0;
 
@@ -40,6 +43,8 @@ void ChatServer::Run(uint16 nPort) {
     m_pInterface->CloseConnection( it.first, 0, "Server Shutdown", true );
   }
   m_mapClients.clear();
+
+  cc.ShutdownSteamDatagramConnectionSockets();
 }
 
 void ChatServer::SendStringToClient( HSteamNetConnection conn, const char *str ) {

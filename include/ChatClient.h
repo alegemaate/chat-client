@@ -7,12 +7,6 @@
 #include <steam/steamnetworkingsockets.h>
 #include <steam/isteamnetworkingutils.h>
 
-/////////////////////////////////////////////////////////////////////////////
-//
-// ChatClient
-//
-/////////////////////////////////////////////////////////////////////////////
-
 class ChatClient : private ISteamNetworkingSocketsCallbacks {
   public:
     void Run( const SteamNetworkingIPAddr &serverAddr );

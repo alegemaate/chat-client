@@ -6,6 +6,8 @@
 #include <string>
 #include <random>
 #include <cctype>
+#include <thread>
+#include <chrono>
 
 #define WIN32
 
@@ -18,8 +20,7 @@
 
 // We do this because I won't want to figure out how to cleanly shut
 // down the thread that is reading from stdin.
-void ChatCommon::NukeProcess( int rc )
-{
+void ChatCommon::NukeProcess( int rc ) {
 	#ifdef WIN32
 		ExitProcess( rc );
 	#else
@@ -27,8 +28,7 @@ void ChatCommon::NukeProcess( int rc )
 	#endif
 }
 
-void DebugOutput( ESteamNetworkingSocketsDebugOutputType eType, const char *pszMsg )
-{
+void DebugOutput( ESteamNetworkingSocketsDebugOutputType eType, const char *pszMsg ) {
 	SteamNetworkingMicroseconds time = SteamNetworkingUtils()->GetLocalTimestamp() - g_logTimeZero;
 	printf( "%10.6f %s\n", time*1e-6, pszMsg );
 	fflush(stdout);
@@ -40,8 +40,7 @@ void DebugOutput( ESteamNetworkingSocketsDebugOutputType eType, const char *pszM
 	}
 }
 
-void ChatCommon::FatalError( const char *fmt, ... )
-{
+void ChatCommon::FatalError( const char *fmt, ... ) {
 	char text[ 2048 ];
 	va_list ap;
 	va_start( ap, fmt );
@@ -53,8 +52,7 @@ void ChatCommon::FatalError( const char *fmt, ... )
 	DebugOutput( k_ESteamNetworkingSocketsDebugOutputType_Bug, text );
 }
 
-void ChatCommon::Printf( const char *fmt, ... )
-{
+void ChatCommon::Printf( const char *fmt, ... ) {
 	char text[ 2048 ];
 	va_list ap;
 	va_start( ap, fmt );
@@ -65,4 +63,21 @@ void ChatCommon::Printf( const char *fmt, ... )
 		*nl = '\0';
 	DebugOutput( k_ESteamNetworkingSocketsDebugOutputType_Msg, text );
 }
+
+void ChatCommon::InitSteamDatagramConnectionSockets() {
+  SteamDatagramErrMsg errMsg;
+  if ( !GameNetworkingSockets_Init( nullptr, errMsg ) )
+    cc.FatalError( "GameNetworkingSockets_Init failed.  %s", errMsg );
+
+	g_logTimeZero = SteamNetworkingUtils()->GetLocalTimestamp();
+
+	SteamNetworkingUtils()->SetDebugOutputFunction( k_ESteamNetworkingSocketsDebugOutputType_Msg, DebugOutput );
+}
+
+void ChatCommon::ShutdownSteamDatagramConnectionSockets() {
+	std::this_thread::sleep_for( std::chrono::milliseconds( 500 ) );
+
+  GameNetworkingSockets_Kill();
+}
+
 

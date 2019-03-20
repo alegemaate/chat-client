@@ -7,6 +7,9 @@
 #include "ChatCommon.h"
 
 void ChatClient::Run( const SteamNetworkingIPAddr &serverAddr ) {
+  // Create client and server sockets
+	cc.InitSteamDatagramConnectionSockets();
+
   // Select instance to use.  For now we'll always use the default.
   m_pInterface = SteamNetworkingSockets();
 
@@ -25,6 +28,9 @@ void ChatClient::Run( const SteamNetworkingIPAddr &serverAddr ) {
     PollLocalUserInput();
     std::this_thread::sleep_for( std::chrono::milliseconds( 10 ) );
   }
+
+
+	cc.ShutdownSteamDatagramConnectionSockets();
 }
 
 

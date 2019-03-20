@@ -17,6 +17,10 @@ class ChatCommon {
     void FatalError( const char *fmt, ... );
 
     void Printf( const char *fmt, ... );
+
+    void InitSteamDatagramConnectionSockets();
+
+    void ShutdownSteamDatagramConnectionSockets();
 };
 
 static ChatCommon cc;
