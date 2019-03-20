@@ -1,9 +1,6 @@
 #ifndef CHATCLIENT_H
 #define CHATCLIENT_H
 
-#include <string>
-#include <map>
-
 #include <steam/steamnetworkingsockets.h>
 #include <steam/isteamnetworkingutils.h>
 

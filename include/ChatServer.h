@@ -1,7 +1,6 @@
 #ifndef CHATSERVER_H
 #define CHATSERVER_H
 
-#include <string>
 #include <map>
 
 #include <steam/steamnetworkingsockets.h>

@@ -1,10 +1,6 @@
-#include <thread>
-#include <chrono>
-
 #include "ChatCommon.h"
 #include "ChatServer.h"
 #include "ChatClient.h"
-
 
 int main( int argc, const char *argv[] ) {
   const uint16 DEFAULT_SERVER_PORT = 27020;

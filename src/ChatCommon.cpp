@@ -1,11 +1,6 @@
 #include "ChatCommon.h"
 
-#include <stdio.h>
-#include <stdarg.h>
-#include <string.h>
 #include <string>
-#include <random>
-#include <cctype>
 #include <thread>
 #include <chrono>
 
