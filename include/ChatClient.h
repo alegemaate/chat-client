@@ -31,7 +31,7 @@ class ChatClient : private ISteamNetworkingSocketsCallbacks {
 
     void PollLocalUserInput();
 
-    virtual void OnSteamNetConnectionStatusChanged( SteamNetConnectionStatusChangedCallback_t *pInfo ) override;
+    virtual void OnSteamNetConnectionStatusChanged(SteamNetConnectionStatusChangedCallback_t *pInfo) override;
 
 };
 

@@ -1,12 +1,15 @@
 #include "ChatServer.h"
 
 #include <assert.h>
+#include <thread>
+#include <chrono>
 
 #include "ChatCommon.h"
-#include "LocalUserInput.h"
 
+void ChatServer::Run(uint16 nPort) {
+  // Restart id index
+  id_index = 0;
 
-void ChatServer::Run( uint16 nPort ) {
   // Select instance to use.  For now we'll always use the default.
   // But we could use SteamGameServerNetworkingSockets() on Steam.
   m_pInterface = SteamNetworkingSockets();
@@ -20,8 +23,7 @@ void ChatServer::Run( uint16 nPort ) {
     cc.FatalError( "Failed to listen on port %d", nPort );
   cc.Printf( "Server listening on port %d\n", nPort );
 
-  while ( !g_bQuit )
-  {
+  while (!g_bQuit) {
     PollIncomingMessages();
     PollConnectionStateChanges();
     PollLocalUserInput();
@@ -29,26 +31,16 @@ void ChatServer::Run( uint16 nPort ) {
   }
 
   // Close all the connections
-  cc.Printf( "Closing connections...\n" );
-  for ( auto it: m_mapClients )
-  {
-    // Send them one more goodbye message.  Note that we also have the
-    // connection close reason as a place to send final data.  However,
-    // that's usually best left for more diagnostic/debug text not actual
-    // protocol strings.
+  cc.Printf("Closing connections...\n");
+  for (auto it: m_mapClients) {
+    // Send them one more goodbye message
     SendStringToClient( it.first, "Server is shutting down.  Goodbye." );
 
-    // Close the connection.  We use "linger mode" to ask SteamNetworkingSockets
-    // to flush this out and close gracefully.
+    // Close the connection.
     m_pInterface->CloseConnection( it.first, 0, "Server Shutdown", true );
   }
   m_mapClients.clear();
 }
-
-
-
-
-
 
 void ChatServer::SendStringToClient( HSteamNetConnection conn, const char *str ) {
   m_pInterface->SendMessageToConnection( conn, str, (uint32)strlen(str), k_nSteamNetworkingSend_Reliable );
@@ -85,27 +77,7 @@ void ChatServer::PollIncomingMessages() {
 
     // Check for known commands.  None of this example code is secure or robust.
     // Don't write a real server like this, please.
-    if ( strncmp( cmd, "/nick", 5 ) == 0 ) {
-      const char *nick = cmd+5;
-      while ( isspace(*nick) )
-        ++nick;
-
-      // Let everybody else know they changed their name
-      sprintf( temp, "%s shall henceforth be known as %s", itClient->second.m_sNick.c_str(), nick );
-      SendStringToAllClients( temp, itClient->first );
-
-      // Respond to client
-      sprintf( temp, "Ye shall henceforth be known as %s", nick );
-      SendStringToClient( itClient->first, temp );
-
-      // Actually change their name
-      SetClientNick( itClient->first, nick );
-      continue;
-    }
-
-    // Assume it's just a ordinary chat message, dispatch to everybody else
-    sprintf( temp, "%s: %s", itClient->second.m_sNick.c_str(), cmd );
-    SendStringToAllClients( temp, itClient->first );
+    sprintf( temp, "Message from client %d (%s)", itClient->second.m_sID, cmd );
   }
 }
 
@@ -114,69 +86,50 @@ void ChatServer::PollConnectionStateChanges() {
 }
 
 void ChatServer::PollLocalUserInput() {
+  /*
   std::string cmd;
   while ( !g_bQuit && lui.GetNext( cmd )) {
+
     if ( strcmp( cmd.c_str(), "/quit" ) == 0 ) {
       g_bQuit = true;
       cc.Printf( "Shutting down server" );
       break;
     }
-
-    // That's the only command we support
-    cc.Printf( "The server only knows one command: '/quit'" );
   }
-}
-
-void ChatServer::SetClientNick( HSteamNetConnection hConn, const char *nick ) {
-  // Remember their nick
-  m_mapClients[hConn].m_sNick = nick;
-
-  // Set the connection name, too, which is useful for debugging
-  m_pInterface->SetConnectionName( hConn, nick );
+  */
 }
 
 void ChatServer::OnSteamNetConnectionStatusChanged( SteamNetConnectionStatusChangedCallback_t *pInfo ) {
   char temp[1024];
 
   // What's the state of the connection?
-  switch ( pInfo->m_info.m_eState )
-  {
+  switch (pInfo->m_info.m_eState) {
     case k_ESteamNetworkingConnectionState_None:
       // NOTE: We will get callbacks here when we destroy connections.  You can ignore these.
       break;
 
     case k_ESteamNetworkingConnectionState_ClosedByPeer:
-    case k_ESteamNetworkingConnectionState_ProblemDetectedLocally:
-    {
+    case k_ESteamNetworkingConnectionState_ProblemDetectedLocally: {
       // Ignore it they were not previously connected.  (If they disconnected
       // before we accepted the connection.)
-      if ( pInfo->m_eOldState == k_ESteamNetworkingConnectionState_Connected )
-      {
+      if (pInfo->m_eOldState == k_ESteamNetworkingConnectionState_Connected) {
 
-        // Locate the client.  Note that it should have be found, because this
-        // is the only codepath where we remove clients (except on shutdown),
-        // and connection change callbacks are dispatched in queue order.
-        auto itClient = m_mapClients.find( pInfo->m_hConn );
-        assert( itClient != m_mapClients.end() );
+        // Locate the client.
+        auto itClient = m_mapClients.find( pInfo->m_hConn);
+        assert(itClient != m_mapClients.end());
 
         // Select appropriate log messages
         const char *pszDebugLogAction;
-        if ( pInfo->m_info.m_eState == k_ESteamNetworkingConnectionState_ProblemDetectedLocally )
-        {
+        if (pInfo->m_info.m_eState == k_ESteamNetworkingConnectionState_ProblemDetectedLocally) {
           pszDebugLogAction = "problem detected locally";
-          sprintf( temp, "Alas, %s hath fallen into shadow.  (%s)", itClient->second.m_sNick.c_str(), pInfo->m_info.m_szEndDebug );
+          sprintf( temp, "Client %d disconnected.  (%s)", itClient->second.m_sID, pInfo->m_info.m_szEndDebug );
         }
-        else
-        {
-          // Note that here we could check the reason code to see if
-          // it was a "usual" connection or an "unusual" one.
+        else {
           pszDebugLogAction = "closed by peer";
-          sprintf( temp, "%s hath departed", itClient->second.m_sNick.c_str() );
+          sprintf( temp, "Client %d disconnected.", itClient->second.m_sID );
         }
 
-        // Spew something to our own log.  Note that because we put their nick
-        // as the connection description, it will show up, along with their
-        // transport-specific data (e.g. their IP address)
+        // Spew something to our own log.
         cc.Printf( "Connection %s %s, reason %d: %s\n",
           pInfo->m_info.m_szConnectionDescription,
           pszDebugLogAction,
@@ -189,82 +142,51 @@ void ChatServer::OnSteamNetConnectionStatusChanged( SteamNetConnectionStatusChan
         // Send a message so everybody else knows what happened
         SendStringToAllClients( temp );
       }
-      else
-      {
+      else {
         assert( pInfo->m_eOldState == k_ESteamNetworkingConnectionState_Connecting );
       }
 
-      // Clean up the connection.  This is important!
-      // The connection is "closed" in the network sense, but
-      // it has not been destroyed.  We must close it on our end, too
-      // to finish up.  The reason information do not matter in this case,
-      // and we cannot linger because it's already closed on the other end,
-      // so we just pass 0's.
+      // Clean up the connection.
       m_pInterface->CloseConnection( pInfo->m_hConn, 0, nullptr, false );
       break;
     }
 
-    case k_ESteamNetworkingConnectionState_Connecting:
-    {
+    case k_ESteamNetworkingConnectionState_Connecting: {
       // This must be a new connection
       assert( m_mapClients.find( pInfo->m_hConn ) == m_mapClients.end() );
-
       cc.Printf( "Connection request from %s", pInfo->m_info.m_szConnectionDescription );
 
       // A client is attempting to connect
       // Try to accept the connection.
-      if ( m_pInterface->AcceptConnection( pInfo->m_hConn ) != k_EResultOK )
-      {
-        // This could fail.  If the remote host tried to connect, but then
-        // disconnected, the connection may already be half closed.  Just
-        // destroy whatever we have on our side.
+      if ( m_pInterface->AcceptConnection( pInfo->m_hConn ) != k_EResultOK ) {
         m_pInterface->CloseConnection( pInfo->m_hConn, 0, nullptr, false );
         cc.Printf( "Can't accept connection.  (It was already closed?)" );
         break;
       }
 
-      // Generate a random nick.  A random temporary nick
-      // is really dumb and not how you would write a real chat server.
-      // You would want them to have some sort of signon message,
-      // and you would keep their client in a state of limbo (connected,
-      // but not logged on) until them.  I'm trying to keep this example
-      // code really simple.
-      char nick[ 64 ];
-      sprintf( nick, "BraveWarrior%d", 10000 + ( rand() % 100000 ) );
-
       // Send them a welcome message
-      sprintf( temp, "Welcome, stranger.  Thou art known to us for now as '%s'; upon thine command '/nick' we shall know thee otherwise.", nick );
+      sprintf( temp, "Connected to server, id:%d.", id_index );
       SendStringToClient( pInfo->m_hConn, temp );
 
       // Also send them a list of everybody who is already connected
-      if ( m_mapClients.empty() )
-      {
-        SendStringToClient( pInfo->m_hConn, "Thou art utterly alone." );
-      }
-      else
-      {
-        sprintf( temp, "%d companions greet you:", (int)m_mapClients.size() );
-        for ( auto &c: m_mapClients )
-          SendStringToClient( pInfo->m_hConn, c.second.m_sNick.c_str() );
-      }
+      sprintf( temp, "%d other clients connected.", (int)m_mapClients.size() );
 
       // Let everybody else know who they are for now
-      sprintf( temp, "Hark!  A stranger hath joined this merry host.  For now we shall call them '%s'", nick );
+      sprintf( temp, "Client connected with id:%d", id_index );
       SendStringToAllClients( temp, pInfo->m_hConn );
 
       // Add them to the client list, using std::map wacky syntax
-      m_mapClients[ pInfo->m_hConn ];
-      SetClientNick( pInfo->m_hConn, nick );
+      m_mapClients[pInfo->m_hConn];
+      m_mapClients[pInfo->m_hConn].m_sID = id_index;
+      m_pInterface->SetConnectionName(pInfo->m_hConn, std::to_string(id_index++).c_str());
+
       break;
     }
 
     case k_ESteamNetworkingConnectionState_Connected:
-      // We will get a callback immediately after accepting the connection.
-      // Since we are the server, we can ignore this, it's not news to us.
       break;
 
     default:
-      // Silences -Wswitch
       break;
   }
 }

@@ -27,14 +27,14 @@ class ChatServer : private ISteamNetworkingSocketsCallbacks {
 
     struct Client_t
     {
-      std::string m_sNick;
+      int m_sID;
     };
 
-    std::map< HSteamNetConnection, Client_t > m_mapClients;
+    std::map<HSteamNetConnection, Client_t> m_mapClients;
 
-    void SendStringToClient( HSteamNetConnection conn, const char *str );
+    void SendStringToClient(HSteamNetConnection conn, const char *str);
 
-    void SendStringToAllClients( const char *str, HSteamNetConnection except = k_HSteamNetConnection_Invalid );
+    void SendStringToAllClients(const char *str, HSteamNetConnection except = k_HSteamNetConnection_Invalid);
 
     void PollIncomingMessages();
 
@@ -42,9 +42,9 @@ class ChatServer : private ISteamNetworkingSocketsCallbacks {
 
     void PollLocalUserInput();
 
-    void SetClientNick( HSteamNetConnection hConn, const char *nick );
+    virtual void OnSteamNetConnectionStatusChanged(SteamNetConnectionStatusChangedCallback_t *pInfo) override;
 
-    virtual void OnSteamNetConnectionStatusChanged( SteamNetConnectionStatusChangedCallback_t *pInfo ) override;
+    int id_index;
 };
 
 #endif // CHATSERVER_H

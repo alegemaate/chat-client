@@ -12,7 +12,7 @@
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Compiler>
-					<Add option="-std=c++11" />
+					<Add option="-std=c++0x" />
 					<Add option="-g" />
 					<Add directory="include" />
 				</Compiler>
@@ -27,12 +27,10 @@
 		<Unit filename="include/ChatClient.h" />
 		<Unit filename="include/ChatCommon.h" />
 		<Unit filename="include/ChatServer.h" />
-		<Unit filename="include/LocalUserInput.h" />
 		<Unit filename="main.cpp" />
 		<Unit filename="src/ChatClient.cpp" />
 		<Unit filename="src/ChatCommon.cpp" />
 		<Unit filename="src/ChatServer.cpp" />
-		<Unit filename="src/LocalUserInput.cpp" />
 		<Extensions>
 			<code_completion />
 			<envvars />

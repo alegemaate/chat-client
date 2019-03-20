@@ -5,7 +5,6 @@
 #include <chrono>
 
 #include "ChatCommon.h"
-#include "LocalUserInput.h"
 
 void ChatClient::Run( const SteamNetworkingIPAddr &serverAddr ) {
   // Select instance to use.  For now we'll always use the default.
@@ -30,8 +29,7 @@ void ChatClient::Run( const SteamNetworkingIPAddr &serverAddr ) {
 
 
 void ChatClient::PollIncomingMessages() {
-  while ( !g_bQuit )
-  {
+  while (!g_bQuit) {
     ISteamNetworkingMessage *pIncomingMsg = nullptr;
     int numMsgs = m_pInterface->ReceiveMessagesOnConnection( m_hConnection, &pIncomingMsg, 1 );
     if ( numMsgs == 0 )
@@ -53,8 +51,8 @@ void ChatClient::PollConnectionStateChanges() {
 }
 
 void ChatClient::PollLocalUserInput() {
-  std::string cmd;
-  while ( !g_bQuit && lui.GetNext( cmd )) {
+  /*std::string cmd;
+  while (!g_bQuit && lui.GetNext(cmd)) {
 
     // Check for known commands
     if ( strcmp( cmd.c_str(), "/quit" ) == 0 ) {
@@ -71,55 +69,43 @@ void ChatClient::PollLocalUserInput() {
 
     // Anything else, just send it to the server and let them parse it
     m_pInterface->SendMessageToConnection( m_hConnection, cmd.c_str(), (uint32)cmd.length(), k_nSteamNetworkingSend_Reliable );
-  }
+  }*/
 }
 
-void ChatClient::OnSteamNetConnectionStatusChanged( SteamNetConnectionStatusChangedCallback_t *pInfo ) {
-  assert( pInfo->m_hConn == m_hConnection || m_hConnection == k_HSteamNetConnection_Invalid );
+void ChatClient::OnSteamNetConnectionStatusChanged(SteamNetConnectionStatusChangedCallback_t *pInfo) {
+  assert(pInfo->m_hConn == m_hConnection || m_hConnection == k_HSteamNetConnection_Invalid);
 
   // What's the state of the connection?
-  switch ( pInfo->m_info.m_eState )
-  {
+  switch (pInfo->m_info.m_eState) {
     case k_ESteamNetworkingConnectionState_None:
       // NOTE: We will get callbacks here when we destroy connections.  You can ignore these.
       break;
 
     case k_ESteamNetworkingConnectionState_ClosedByPeer:
-    case k_ESteamNetworkingConnectionState_ProblemDetectedLocally:
-    {
+    case k_ESteamNetworkingConnectionState_ProblemDetectedLocally: {
       g_bQuit = true;
 
       // Print an appropriate message
-      if ( pInfo->m_eOldState == k_ESteamNetworkingConnectionState_Connecting )
-      {
+      if (pInfo->m_eOldState == k_ESteamNetworkingConnectionState_Connecting) {
         // Note: we could distinguish between a timeout, a rejected connection,
         // or some other transport problem.
-        cc.Printf( "Could not connect.  (%s)", pInfo->m_info.m_szEndDebug );
+        cc.Printf("Could not connect.  (%s)", pInfo->m_info.m_szEndDebug);
       }
-      else if ( pInfo->m_info.m_eState == k_ESteamNetworkingConnectionState_ProblemDetectedLocally )
-      {
-        cc.Printf( "Lost contact with host.  (%s)", pInfo->m_info.m_szEndDebug );
+      else if (pInfo->m_info.m_eState == k_ESteamNetworkingConnectionState_ProblemDetectedLocally) {
+        cc.Printf("Lost contact with host.  (%s)", pInfo->m_info.m_szEndDebug);
       }
-      else
-      {
+      else {
         // NOTE: We could check the reason code for a normal disconnection
-        cc.Printf( "Server shut down.  (%s)", pInfo->m_info.m_szEndDebug );
+        cc.Printf("Server shut down.  (%s)", pInfo->m_info.m_szEndDebug);
       }
 
-      // Clean up the connection.  This is important!
-      // The connection is "closed" in the network sense, but
-      // it has not been destroyed.  We must close it on our end, too
-      // to finish up.  The reason information do not matter in this case,
-      // and we cannot linger because it's already closed on the other end,
-      // so we just pass 0's.
+      // Clean up the connection.
       m_pInterface->CloseConnection( pInfo->m_hConn, 0, nullptr, false );
       m_hConnection = k_HSteamNetConnection_Invalid;
       break;
     }
 
     case k_ESteamNetworkingConnectionState_Connecting:
-      // We will get this callback when we start connecting.
-      // We can ignore this.
       break;
 
     case k_ESteamNetworkingConnectionState_Connected:
@@ -127,7 +113,6 @@ void ChatClient::OnSteamNetConnectionStatusChanged( SteamNetConnectionStatusChan
       break;
 
     default:
-      // Silences -Wswitch
       break;
   }
 }

@@ -1,5 +1,7 @@
+#include <thread>
+#include <chrono>
+
 #include "ChatCommon.h"
-#include "LocalUserInput.h"
 #include "ChatServer.h"
 #include "ChatClient.h"
 
@@ -106,7 +108,6 @@ int main( int argc, const char *argv[] ) {
 
 	// Create client and server sockets
 	InitSteamDatagramConnectionSockets();
-	lui.Init();
 
 	if (bClient) {
 		ChatClient client;
