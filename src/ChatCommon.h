@@ -1,28 +1,29 @@
 #ifndef CHATCOMMON_H
 #define CHATCOMMON_H
 
-#include <steam/steamnetworkingsockets.h>
 #include <steam/isteamnetworkingutils.h>
+#include <steam/steamnetworkingsockets.h>
 
 static bool g_bQuit = false;
 
 static SteamNetworkingMicroseconds g_logTimeZero;
 
-void DebugOutput( ESteamNetworkingSocketsDebugOutputType eType, const char *pszMsg );
+void debugOutput(ESteamNetworkingSocketsDebugOutputType eType,
+                 const char* pszMsg);
 
 class ChatCommon {
-  public:
-    void NukeProcess( int rc );
+ public:
+  void nukeProcess(int rc);
 
-    void FatalError( const char *fmt, ... );
+  void fatalError(const char* fmt, ...);
 
-    void Printf( const char *fmt, ... );
+  void printf(const char* fmt, ...);
 
-    void InitSteamDatagramConnectionSockets();
+  void initConnectionSockets();
 
-    void ShutdownSteamDatagramConnectionSockets();
+  void shutdownConnectionSockets();
 };
 
 static ChatCommon cc;
 
-#endif // CHATCOMMON_H
+#endif  // CHATCOMMON_H

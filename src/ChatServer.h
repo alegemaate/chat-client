@@ -3,38 +3,39 @@
 
 #include <map>
 
-#include <steam/steamnetworkingsockets.h>
 #include <steam/isteamnetworkingutils.h>
+#include <steam/steamnetworkingsockets.h>
 
 class ChatServer : private ISteamNetworkingSocketsCallbacks {
-  public:
-    void Run( uint16 nPort );
+ public:
+  void start(uint16 nPort);
 
-  private:
+ private:
+  HSteamListenSocket m_hListenSock;
+  ISteamNetworkingSockets* m_pInterface;
 
-    HSteamListenSocket m_hListenSock;
-    ISteamNetworkingSockets *m_pInterface;
+  struct Client_t {
+    int m_sID;
+  };
 
-    struct Client_t
-    {
-      int m_sID;
-    };
+  std::map<HSteamNetConnection, Client_t> m_mapClients;
 
-    std::map<HSteamNetConnection, Client_t> m_mapClients;
+  void sendStringToClient(HSteamNetConnection conn, const char* str);
 
-    void SendStringToClient(HSteamNetConnection conn, const char *str);
+  void sendStringToAllClients(
+      const char* str,
+      HSteamNetConnection except = k_HSteamNetConnection_Invalid);
 
-    void SendStringToAllClients(const char *str, HSteamNetConnection except = k_HSteamNetConnection_Invalid);
+  void pollIncomingMessages();
 
-    void PollIncomingMessages();
+  void pollConnectionStateChanges();
 
-    void PollConnectionStateChanges();
+  void pollLocalUserInput();
 
-    void PollLocalUserInput();
+  virtual void OnSteamNetConnectionStatusChanged(
+      SteamNetConnectionStatusChangedCallback_t* pInfo) override;
 
-    virtual void OnSteamNetConnectionStatusChanged(SteamNetConnectionStatusChangedCallback_t *pInfo) override;
-
-    int id_index;
+  int id_index;
 };
 
-#endif // CHATSERVER_H
+#endif  // CHATSERVER_H
